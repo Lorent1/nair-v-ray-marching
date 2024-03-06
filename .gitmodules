@@ -2,8 +2,8 @@
 	path = external/LiteMath
 	url = https://github.com/msu-graphics-group/LiteMath.git
 [submodule "external/vkutils"]
-	path = external/vkutils
+	path = external/vk-utils
 	url = https://github.com/msu-graphics-group/vk-utils.git
 [submodule "external/volk"]
 	path = external/volk
-	url = https://github.com/zeux/volk.gitW
+	url = https://github.com/zeux/volk.git
