@@ -10,7 +10,6 @@ float4 unionSDF(float4 a, float4 b) {
 }
 
 float4 map(float3 p) {
-
     float sp = length(p) - 0.5f;
     float pl = dot(p, normalize(float3(0.0f,1.0f,0.0f))) + 1.5f;
     float4 sphere = float4(1.0f, 1.0f, 1.0f, sp);
@@ -100,7 +99,7 @@ void RayMarcher::kernel2D_RayMarch(uint32_t* out_color, uint32_t width, uint32_t
             float3 background = float3(0.5f, 0.8f, 0.9f);
             float4 pixelInfo; // color(r, g, b), distance;
             float2 uv = (float2((float)x, (float)y) * 2.0f / float2((float)width, (float)height) - 1.0f) * float2(ratio, 1.0f);
-            float3 rd = camera * normalize(float3(uv.x, uv.y, 1.0f));
+            float3 rd = camera * normalize(float3(uv.x, uv.y, FOV));
             float3 p;
             float t = 0.0f;
             float3 pixel = float3(0.0f);

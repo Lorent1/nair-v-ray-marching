@@ -30,11 +30,13 @@ if(USE_VULKAN)
 
   include_directories("external/LiteMath"
                       "external/vk-utils"
-                      "external/volk")
+                      "external/volk"
+                      "external/json-master")
 
   link_directories("../volk")
 else()
-  include_directories("external/LiteMath")
+  include_directories("external/LiteMath"
+                      "external/json-master")
 endif()
 
 include_directories(".")

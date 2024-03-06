@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include <vector>
 #include <iostream>
 #include <fstream>
@@ -9,6 +8,8 @@
 #include "LiteMath.h"
 
 using namespace LiteMath;
+
+#include "file_input/file_input.h"
 
 class RayMarcher {
 public:
@@ -24,7 +25,10 @@ public:
 		float3 camU = cross(camF, camR);
 
 		return make_float3x3_by_columns(camR, camU, camF);
-	}	
+	}
+
+	void setCamera(float3 r, float3 lookAt, float fov) { ro = r; camera = getCam(r, lookAt); FOV = fov; };
+	void setCamera(std::string path) { float3 lookAt; InputJson::read_camera(path, &ro, &lookAt, &FOV); camera = getCam(ro, lookAt); };
 
 
 	virtual void kernel2D_RayMarch(uint32_t* out_color, uint32_t width, uint32_t height);
@@ -36,6 +40,7 @@ public:
 	virtual void GetExecutionTime(const char* a_funcName, float a_out[4]);   // will be overriden in generated class
 protected:
 	float    rayMarchTime;
+	float FOV;
 	float3x3 camera;
 	float3 ro;
 };

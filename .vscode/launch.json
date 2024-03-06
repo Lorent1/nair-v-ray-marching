@@ -5,7 +5,7 @@
             "name"   : "Launch cpu",
             "type"   : "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/cmake-build-release/app",
+            "program": "${workspaceFolder}/cmake-build-gpu-release/app",
             "args"   : ["aaa", "bbb"],
             "stopAtEntry": false,
             "cwd"    : "${workspaceFolder}",
@@ -43,10 +43,10 @@
         
         
         {
-            "name": "(gdb) Launch",
+            "name": "(gdb) Launch gpu",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/cmake-build-debug/app",
+            "program": "${workspaceFolder}/cmake-build-gpu-debug/app",
             "args": ["aaa", "bbb"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
@@ -60,9 +60,26 @@
                     "ignoreFailures": true
                 }
             ]
-        }
-        
-        
+        },
+        {
+            "name": "(gdb) Launch cpu",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/cmake-build-cpu-debug/app",
+            "args": ["aaa", "bbb"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        }    
         
 
     ]

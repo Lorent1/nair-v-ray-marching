@@ -22,8 +22,8 @@ int main(int argc, const char** argv){
 #else
     bool enableValidationLayers = false;
 #endif
-    uint WIN_WIDTH = 256;
-    uint WIN_HEIGHT = 256;
+    uint WIN_WIDTH = 512;
+    uint WIN_HEIGHT = 512;
 
     std::shared_ptr<RayMarcher> pImpl = nullptr;
 #ifdef USE_VULKAN
@@ -40,6 +40,8 @@ int main(int argc, const char** argv){
     pImpl = std::make_shared<RayMarcher>();
 
     pImpl->CommitDeviceData();
+    pImpl->setCamera("jsons/camera.json");
+  
 
     std::vector<uint> pixelData(WIN_WIDTH * WIN_HEIGHT);
 

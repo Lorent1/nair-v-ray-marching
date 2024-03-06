@@ -34,16 +34,17 @@ void main()
   {
   
             float ratio = float(kgenArgs.width) / float(kgenArgs.height);
-            vec3 background = vec3(1.0f,1.0f,1.0f);
+            vec3 background = vec3(0.5f,0.8f,0.9f);
             vec4 pixelInfo; // color(r, g, b), distance;
+            vec3 ro = vec3(0.0f, 2.0f, -3.0f);
             vec2 uv = (vec2(float(x),float(y)) * 2.0f / vec2(float(kgenArgs.width),float(kgenArgs.height)) - 1.0f) * vec2(ratio,1.0f);
-            vec3 rd = ubo.camera * normalize(vec3(uv.x,uv.y,1.0f));
+            vec3 rd = normalize(vec3(uv.x,uv.y,1.0f));
             vec3 p;
             float t = 0.0f;
             vec3 pixel = vec3(0.0f);
 
             for (int i = 0; i < 500; i++) {
-                p = ubo.ro + rd * t;
+                p = ro + rd * t;
                 pixelInfo = map(p);
 
                 t += pixelInfo.w; // distance
@@ -51,9 +52,8 @@ void main()
             }
 
             if (t < 50) {
-                //pixel = getLight(p, rd, vec3(pixelInfo.x,pixelInfo.y,pixelInfo.z));
-                //pixel = mix(pixel, background, 1.0f - exp(-1e-4 * t * t * t));
-                pixel = vec3(pixelInfo.x, pixelInfo.y, pixelInfo.z);
+                pixel = getLight(p, rd, vec3(pixelInfo.x,pixelInfo.y,pixelInfo.z));
+                pixel = mix(pixel, background, 1.0f - exp(-1e-4 * t * t * t));
             }
             else {
                 pixel = background/pixelInfo.w - max(0.9f * rd.y, 0.0f);

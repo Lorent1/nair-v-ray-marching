@@ -184,38 +184,27 @@ vec3 getLight(vec3 pos, vec3 rd, vec3 color) {
     vec3 lightPos = vec3(2.0f,20.0f,-5.0f);
     vec3 L = normalize(lightPos - pos);
     vec3 N = EstimateNormal(pos, 1e-3f);
-    //vec3 V = -1 * rd;
-    //vec3 R = reflect(-1 * L, N);
+    vec3 V = -1 * rd;
+    vec3 R = reflect(-1 * L, N);
 
-    //vec3 specColor = vec3(0.5f);
-    //vec3 specular = 1.3f * specColor * pow(clamp(dot(R, V), 0.0f, 1.0f), 10.0f);
-    //vec3 ambient = 0.05f * color;
-    //vec3 fresnel = 0.15f * color * pow(1.0f + dot(rd, N), 3.0f);
+    vec3 specColor = vec3(0.5f);
+    vec3 specular = 1.3f * specColor * pow(clamp(dot(R, V), 0.0f, 1.0f), 10.0f);
+    vec3 ambient = 0.05f * color;
+    vec3 fresnel = 0.15f * color * pow(1.0f + dot(rd, N), 3.0f);
 
-    //float shadow = getSoftShadow(pos + N * 0.02f, normalize(lightPos));
-    //float occ = getAmbientOcclusion(pos, N);
+    float shadow = getSoftShadow(pos + N * 0.02f, normalize(lightPos));
+    float occ = getAmbientOcclusion(pos, N);
 
     vec3 dif = color * clamp(dot(N, L), 0.1f, 1.0f);
 
-    //return (ambient + fresnel) * occ + (dif + specular * occ) * shadow;
-    return dif;
+    return (ambient + fresnel) * occ + (dif + specular * occ) * shadow;
 }
 
 uint RealColorToUint32(vec4 real_color) {
-    //int red = max(0, min(255, int((real_color[0] * 255.0f))));
-    //int green = max(0, min(255, int((real_color[1] * 255.0f))));
-    //int blue = max(0, min(255, int((real_color[2] * 255.0f))));
-    //int alpha = max(0, min(255, int((real_color[3] * 255.0f))));
-
-    float  r = real_color[0]*255.0f;
-    float  g = real_color[1]*255.0f;
-    float  b = real_color[2]*255.0f;
-    float  a = real_color[3]*255.0f;
-
-    uint red = uint(r);
-    uint green = uint(g);
-    uint blue = uint(b);
-    uint alpha = uint(a);
+    int red = max(0, min(255, int((real_color[0] * 255.0f))));
+    int green = max(0, min(255, int((real_color[1] * 255.0f))));
+    int blue = max(0, min(255, int((real_color[2] * 255.0f))));
+    int alpha = max(0, min(255, int((real_color[3] * 255.0f))));
 
     return red | (green << 8) | (blue << 16) | (alpha << 24);
 }
