@@ -37,4 +37,5 @@
 /external/LiteMath/
 /external/vkutils/
 /external/volk/
+/cmake-build*
 config.txt

@@ -29,7 +29,7 @@ if(USE_VULKAN)
   include_directories(${Vulkan_INCLUDE_DIR})
 
   include_directories("external/LiteMath"
-                      "external/vkutils"
+                      "external/vk-utils"
                       "external/volk")
 
   link_directories("../volk")
@@ -52,28 +52,28 @@ endif()
 
 if(USE_VULKAN)
   add_executable(app main.cpp
-                 RayMarcher.cpp
+                 ray_marcher/RayMarcher.cpp
                  external/LiteMath/Image2d.cpp
 
-                 example_tracer/example_tracer_generated.cpp
-                 example_tracer/example_tracer_generated_ds.cpp
-                 example_tracer/example_tracer_generated_init.cpp
+                 ray_marcher/RayMarcher_generated.cpp
+                 ray_marcher/RayMarcher_generated_ds.cpp
+                 ray_marcher/RayMarcher_generated_init.cpp
 
-                 external/vkutils/vk_utils.cpp
-                 external/vkutils/vk_copy.cpp
-                 external/vkutils/vk_context.cpp
-                 external/vkutils/vk_alloc_simple.cpp
-                 external/vkutils/vk_buffers.cpp
-                 external/vkutils/vk_images.cpp
-                 external/vkutils/vk_pipeline.cpp
-                 external/vkutils/vk_descriptor_sets.cpp)
+                 external/vk-utils/vk_utils.cpp
+                 external/vk-utils/vk_copy.cpp
+                 external/vk-utils/vk_context.cpp
+                 external/vk-utils/vk_alloc_simple.cpp
+                 external/vk-utils/vk_buffers.cpp
+                 external/vk-utils/vk_images.cpp
+                 external/vk-utils/vk_pipeline.cpp
+                 external/vk-utils/vk_descriptor_sets.cpp)
 
   set_target_properties(app PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
   target_link_libraries(app LINK_PUBLIC OpenMP::OpenMP_CXX volk "${PLATFORM_DEPENDEPNT_LIBS}")
 
 else()
   add_executable(app main.cpp 
-                 RayMarcher.cpp 
+                 ray_marcher/RayMarcher.cpp 
                  external/LiteMath/Image2d.cpp)
 
   set_target_properties(app PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")

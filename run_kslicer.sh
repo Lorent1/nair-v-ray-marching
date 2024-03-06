@@ -10,8 +10,8 @@ done < config.txt
 current_directory=$(pwd)           # получаем текущую директорию и сохраняем в переменную
 cd "$kslicer_directory" || exit 1  # переходим в директорию слайсера, запускать нужно из неё
 
-$kslicer_exe $current_directory/example_tracer/example_tracer.cpp \
--mainClass "RayMarcherExample" \
+$kslicer_exe $current_directory/ray_marcher/RayMarcher.cpp \
+-mainClass "RayMarcher" \
 -pattern "ipv" \
 -shaderCC "glsl" \
 -shaderFolderPrefix "example_tracer/" \

@@ -3,18 +3,10 @@
 #include <chrono>
 #include <string>
 
-#include <RayMarcher.h>
+#include "RayMarcher.h"
 
 float4 unionSDF(float4 a, float4 b) {
     return a.w < b.w ? a : b;
-}
-
-float3x3 getCam(float3 ro, float3 lookAt) {
-    float3 camF = normalize(float3(lookAt - ro));
-    float3 camR = normalize(cross(float3(0.0f, 1.0f, 0.0f), camF));
-    float3 camU = cross(camF, camR);
-
-    return make_float3x3_by_columns(camR, camU, camF);
 }
 
 float4 map(float3 p) {
@@ -101,15 +93,12 @@ static inline uint32_t RealColorToUint32(float4 real_color){
 }
 
 
-void RayMarcher::kernel2D_RayMarch(uint32_t* out_color, uint32_t width, uint32_t height){
-    float ratio = (float)width / height;
-    float3 background = float3(0.5f, 0.8f, 0.9f);
-    float3 ro = float3(0.0f, 2.0f, -3.0f);
-    float4 pixelInfo; // color(r, g, b), distance;
-    float3x3 camera = getCam(ro, float3(0, 0, 0));
-          
+void RayMarcher::kernel2D_RayMarch(uint32_t* out_color, uint32_t width, uint32_t height){        
     for (uint32_t y = 0; y < height; y++){
         for (uint32_t x = 0; x < width; x++){
+            float ratio = (float)width / height;
+            float3 background = float3(0.5f, 0.8f, 0.9f);
+            float4 pixelInfo; // color(r, g, b), distance;
             float2 uv = (float2((float)x, (float)y) * 2.0f / float2((float)width, (float)height) - 1.0f) * float2(ratio, 1.0f);
             float3 rd = camera * normalize(float3(uv.x, uv.y, 1.0f));
             float3 p;
@@ -134,7 +123,6 @@ void RayMarcher::kernel2D_RayMarch(uint32_t* out_color, uint32_t width, uint32_t
 
             out_color[y * width + x] = RealColorToUint32(float4(pixel.x, pixel.y, pixel.z, 1.0f));
         }
-        std::cout << y << " ";
     }
 }
 

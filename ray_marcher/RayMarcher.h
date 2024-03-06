@@ -6,7 +6,7 @@
 #include <fstream>
 #include <cstdint>
 
-#include <LiteMath.h>
+#include "LiteMath.h"
 
 using namespace LiteMath;
 
@@ -14,13 +14,18 @@ class RayMarcher {
 public:
 
 	RayMarcher(){
-		const float4x4 view = lookAt(float3(0, 1.5, -3), float3(0, 0, 0), float3(0, 1, 0)); // pos, look_at, up
-		const float4x4 proj = perspectiveMatrix(90.0f, 1.0f, 0.1f, 100.0f);
-		m_worldViewInv = inverse4x4(view);
-		m_worldViewProjInv = inverse4x4(proj);
+		float3 ro = float3(0.0f, 2.0f, -3.0f);
+		float3x3 camera = getCam(ro, float3(0, 0, 0));
 	}
 
-	void SetWorldViewMatrix(const float4x4& a_mat) { m_worldViewInv = inverse4x4(a_mat); }
+	float3x3 getCam(float3 ro, float3 lookAt) {
+		float3 camF = normalize(float3(lookAt - ro));
+		float3 camR = normalize(cross(float3(0.0f, 1.0f, 0.0f), camF));
+		float3 camU = cross(camF, camR);
+
+		return make_float3x3_by_columns(camR, camU, camF);
+	}	
+
 
 	virtual void kernel2D_RayMarch(uint32_t* out_color, uint32_t width, uint32_t height);
 	virtual void RayMarch(uint32_t* out_color [[size("width*height")]], uint32_t width, uint32_t height);
@@ -30,7 +35,7 @@ public:
 	//virtual void UpdateMembersTexureData() {}                              // will be overriden in generated class (optional function)
 	virtual void GetExecutionTime(const char* a_funcName, float a_out[4]);   // will be overriden in generated class
 protected:
-	float4x4 m_worldViewProjInv;
-	float4x4 m_worldViewInv;
 	float    rayMarchTime;
+	float3x3 camera;
+	float3 ro;
 };
