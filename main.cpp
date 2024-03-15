@@ -24,8 +24,8 @@ int main(int argc, const char** argv){
 #else
     bool enableValidationLayers = false;
 #endif
-    uint WIN_WIDTH = 512;
-    uint WIN_HEIGHT = 512;
+    uint WIN_WIDTH = 2560;
+    uint WIN_HEIGHT = 1440;
 
     std::shared_ptr<RayMarcher> pImpl = nullptr;
 #ifdef USE_VULKAN
@@ -59,9 +59,9 @@ int main(int argc, const char** argv){
 
     std::stringstream strOut;
     if (onGPU)
-        strOut << std::fixed << std::setprecision(2) << "out_gpu_" << 0 << ".bmp";
+        strOut << std::fixed << std::setprecision(2) << "out_gpu_" << WIN_WIDTH << "x" << WIN_HEIGHT << ".bmp";
     else
-        strOut << std::fixed << std::setprecision(2) << "out_cpu_" << 0 << ".bmp";
+        strOut << std::fixed << std::setprecision(2) << "out_cpu_" << WIN_WIDTH << "x" << WIN_HEIGHT << ".bmp";
     std::string fileName = strOut.str();
 
     LiteImage::SaveBMP(fileName.c_str(), pixelData.data(), WIN_WIDTH, WIN_HEIGHT);

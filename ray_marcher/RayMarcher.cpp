@@ -2,17 +2,38 @@
 #include <vector>
 #include <chrono>
 #include <string>
+#include <iostream>
+#include <omp.h>
 
 #include "RayMarcher.h"
 #include "include/sdf_functions.h"
 
 float4 map(float3 p) {
-    float4 sphere = sdf_sphere(p, float3(0, 0.5f, 0), float3(0.0f, 0.0f, 1.0f), 1.0f);
-    float4 plain = sdf_plane(p, float3(1.0f, 1.0f, 1.0f), float3(0.0f, 1.0f, 0.0f), 1.5f, true);
-    float4 box = sdf_mengerSponge(p, float3(0.0f, 0.0f, 0.0f), float3(1.0f,0.0f,0.0f), float3(1.0f));
-    float4 mandelbulb = sdf_mandelbulb(p, float3(1, 0, 0), float3(1,0,0), 5);
+    float4 scene = float4(1.0f);
 
-    return unionSDF(smoothUnion(box, sphere, 0.5), plain);
+    float4 sphere = sdf_sphere(p, float3(0.0f, 2.0f, -3.0f), float3(0.0f, 0.0f, 1.0f), 2.0f);
+    float4 sphere2 = sdf_sphere(p, float3(0.0f, 0.0f, 0.0f), float3(0.67f, 0.87f, 0.87f), 5.7f);
+    float4 sphere3 = sdf_sphere(p, float3(0.0f, -1.5f, -5.0f), float3(0.67f, 0.87f, 0.87f), 2.0f);
+
+    float4 rbox = sdf_roundBox(p, float3(0.0f, -1.0f, 0.0f), float3(0.25f, 0.79f, 0.87f), float3(5.0f), 0.5f);
+
+    float4 plain = sdf_plane(p, float3(1.0f, 1.0f, 1.0f), float3(0.0f, 1.0f, 0.0f), 1.5f, true);
+
+    float4 sponge = sdf_mengerSponge(p, float3(0.0f, 1.0f, 0.0f), float3(0.0f, 0.55f, 0.85f), float3(1.0f), 2.0f);
+
+    float4 mandelbulb = sdf_mandelbulb(p, float3(0.0f, 7.0f, 0.0f), float3(0.25f, 0.79f, 0.87f), 7, 3.0f);
+
+    scene = smoothSubtraction(sphere, sponge, 0.8f);
+
+    float4 tmp = smoothSubtraction(sphere2, rbox, 0.95f);
+    scene = unionSDF(tmp, scene);
+
+    tmp = smoothUnion(plain, sphere3, 0.9f);
+    scene = unionSDF(scene, tmp);
+
+    scene = unionSDF(mandelbulb, scene);
+
+    return scene;
 }
 
 #include "include/light_functions.h"
@@ -36,14 +57,14 @@ float3x3 getCam(float3 ro, float3 lookAt) {
 
 float2 getUV(float2 offset, int x, int y, int width, int heigth) {
     float ratio = (float)width / heigth;
-    return ((float2(x, y) - offset) * 2.0f / float2(width, heigth) - 1.0f) * float2(ratio, 1);
+    return ((float2(x, y) - offset) * 2.0f / float2(width, heigth) - 1.0f) * float2(ratio, 1.0f);
 }
 
 float3 RayMarcher::render(float2 uv, int x, int y){
     float3 ro = float3(_ro.x, _ro.y, _ro.z);
     float3 rd = getCam(ro, _lookAt) * normalize(float3(uv.x, uv.y, FOV));
 
-    float3 background = float3(0.5f, 0.8f, 0.9f);
+    float3 background = float3(0.4f, 0.7f, 0.9f);
     float3 pixel = float3(0.0f);
     float4 pixelInfo; // color(r, g, b), distance;
 
@@ -80,17 +101,21 @@ void RayMarcher::kernel2D_RayMarchAAX1(uint32_t* out_color, uint32_t width, uint
     }
 }
 
-void RayMarcher::kernel2D_RayMarchAAX4(uint32_t* out_color, uint32_t width, uint32_t height){        
-    for (uint32_t y = 0; y < height; y++){
-        for (uint32_t x = 0; x < width; x++){
-            float4 e = float4(0.125f, -0.125f, 0.375f, -0.375f);
-            float3 pixel = render(getUV(float2(e.x, e.z), x, y, width, height), x, y)
-                + render(getUV(float2(e.y, e.w), x, y, width, height), x, y)
-                + render(getUV(float2(e.w, e.x), x, y, width, height), x, y)
-                + render(getUV(float2(e.z, e.y), x, y, width, height), x, y);
-            pixel /= 4.0f;
+void RayMarcher::kernel2D_RayMarchAAX4(uint32_t* out_color, uint32_t width, uint32_t height){
+#pragma omp parallel
+    {
+        #pragma omp for collapse(2)
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                float4 e = float4(0.125f, -0.125f, 0.375f, -0.375f);
+                float3 pixel = render(getUV(float2(e.x, e.z), x, y, width, height), x, y)
+                    + render(getUV(float2(e.y, e.w), x, y, width, height), x, y)
+                    + render(getUV(float2(e.w, e.x), x, y, width, height), x, y)
+                    + render(getUV(float2(e.z, e.y), x, y, width, height), x, y);
+                pixel /= 4.0f;
 
-            out_color[y * width + x] = RealColorToUint32(float4(pixel.x, pixel.y, pixel.z, 1.0f));
+                out_color[y * width + x] = RealColorToUint32(float4(pixel.x, pixel.y, pixel.z, 1.0f));
+            }
         }
     }
 }
