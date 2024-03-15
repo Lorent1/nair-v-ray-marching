@@ -42,7 +42,7 @@ void RayMarcher_Generated::AllocateAllDescriptorSets()
   // allocate all descriptor sets
   //
   VkDescriptorSetLayout layouts[1] = {};
-  layouts[0] = RayMarchDSLayout;
+  layouts[0] = RayMarchAAX4DSLayout;
 
   VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = {};
   descriptorSetAllocateInfo.sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -54,7 +54,36 @@ void RayMarcher_Generated::AllocateAllDescriptorSets()
   VK_CHECK_RESULT(tmpRes);
 }
 
-VkDescriptorSetLayout RayMarcher_Generated::CreateRayMarchDSLayout()
+VkDescriptorSetLayout RayMarcher_Generated::CreateRayMarchAAX1DSLayout()
+{
+  std::array<VkDescriptorSetLayoutBinding, 1+1> dsBindings;
+
+  const auto stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+
+  // binding for out_color
+  dsBindings[0].binding            = 0;
+  dsBindings[0].descriptorType     = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+  dsBindings[0].descriptorCount    = 1;
+  dsBindings[0].stageFlags         = stageFlags;
+  dsBindings[0].pImmutableSamplers = nullptr;
+
+  // binding for POD members stored in m_classDataBuffer
+  dsBindings[1].binding            = 1;
+  dsBindings[1].descriptorType     = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+  dsBindings[1].descriptorCount    = 1;
+  dsBindings[1].stageFlags         = stageFlags;
+  dsBindings[1].pImmutableSamplers = nullptr;
+  
+  VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = {};
+  descriptorSetLayoutCreateInfo.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+  descriptorSetLayoutCreateInfo.bindingCount = uint32_t(dsBindings.size());
+  descriptorSetLayoutCreateInfo.pBindings    = dsBindings.data();
+  
+  VkDescriptorSetLayout layout = nullptr;
+  VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorSetLayoutCreateInfo, NULL, &layout));
+  return layout;
+}
+VkDescriptorSetLayout RayMarcher_Generated::CreateRayMarchAAX4DSLayout()
 {
   std::array<VkDescriptorSetLayoutBinding, 1+1> dsBindings;
 
@@ -114,7 +143,7 @@ void RayMarcher_Generated::InitAllGeneratedDescriptorSets_RayMarch()
 {
   // now create actual bindings
   //
-  // descriptor set #0: RayMarchCmd (["out_color"])
+  // descriptor set #0: RayMarchAAX4Cmd (["out_color"])
   {
     constexpr uint additionalSize = 1;
 

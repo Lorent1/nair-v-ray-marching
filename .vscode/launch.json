@@ -5,7 +5,7 @@
             "name"   : "Launch cpu",
             "type"   : "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/cmake-build-gpu-release/app",
+            "program": "${workspaceFolder}/cmake-build-cpu-release/app",
             "args"   : ["aaa", "bbb"],
             "stopAtEntry": false,
             "cwd"    : "${workspaceFolder}",

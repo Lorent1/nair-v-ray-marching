@@ -123,32 +123,118 @@ mat3 make_float3x3(vec3 a, vec3 b, vec3 c) { // different way than mat3(a,b,c)
               a.z, b.z, c.z);
 }
 
+// vec3 max(vec3 q, float f) {
+//     return max(q, vec3(f));
+//     return vec3(max(q.x, f),max(q.y, f),max(q.z, f));
+// }
+
+vec3 getPos(vec3 p, vec3 offset) {return p - offset;}
+
+// vec3 mod(vec3 q, float f) {
+//     return vec3(mod(q.x, f),mod(q.y, f),mod(q.z,f));
+// }
+
+vec3 getColor(vec3 c1, vec3 c2, float d1, float d2) {
+    return (d1 * c1 + d2 * c2) / (d1 + d2);
+}
+
+vec4 sdf_box(vec3 p, vec3 offset, vec3 color, vec3 side) {
+    p = getPos(p, offset);
+    vec3 q = abs(p) - side;
+
+    float box = length(max(q, 0.0f)) + min(max(q.x, max(q.y, q.z)), 0.0f);
+
+    return vec4(color, box);
+}
+
+vec4 sdf_mengerSponge(vec3 p, vec3 offset, vec3 color, vec3 side) {
+    p = getPos(p, offset);
+    vec4 box = sdf_box(p, vec3(0.0f), color, side);
+
+    float s = 1.0f;
+
+    for (int m = 0; m < 5; m++) {
+        vec3 a = mod((p) * s, 2.0f) - 1.0f;
+        s *= 3.0;
+        vec3 r = abs(1.0f - 3.0f * abs(a));
+
+        float da = max(r.x, r.y);
+        float db = max(r.y, r.z);
+        float dc = max(r.z, r.x);
+
+        float c = (min(da, min(db, dc)) - 1.0f) / s;
+
+        box.w = max(box.w, c);
+    }
+
+    return box;
+}
+
+vec4 sdf_mandelbulb(vec3 p, vec3 offset, vec3 color, int power) {
+    p = getPos(p, offset);
+    vec3 z = p;
+
+    float dr = 1;
+    float r = 0;
+    float bailout = 50.0f;
+
+    for (int i = 0; i < 5; i++) {
+        r = length(z);
+        if (r > bailout) break;
+
+        // convert to polar coordinates
+        float theta = acos(z.z / r);
+        float phi = atan(z.y,z.x);
+        dr = pow(r, float(power) - 1.0f) * float(power) * dr + 1.0f;
+
+        // scale and rotate the point
+        float zr = float(pow(r, float(power)));
+        theta = theta * float(power);
+        phi = phi * float(power);
+
+        // convert back to cartesian coordinates
+        z = zr * vec3(sin(theta) * cos(phi),sin(phi) * sin(theta),cos(theta));
+        z += (p) ;
+    }
+
+    return vec4(color, 0.5f * log(r) * r / dr);
+}
+
+vec4 sdf_sphere(vec3 p, vec3 offset, vec3 color, float r) {
+    p = getPos(p, offset);
+    float obj = length(p) - r;
+    return vec4(color, obj);
+}
+
+vec4 smoothUnion(vec4 d1, vec4 d2, float k) {
+    float h = max(k - abs(d1.w - d2.w), 0.0f);
+    vec3 color = getColor(vec3(d1.x,d1.y,d1.z), vec3(d2.x,d2.y,d2.z), d1.w, d2.w);
+
+    return vec4(color, min(d1.w, d2.w) - h * h * 0.25f / k);
+}
+
 vec4 unionSDF(vec4 a, vec4 b) {
     return a.w < b.w ? a : b;
 }
 
-vec4 map(vec3 p) {
+vec4 sdf_plane(vec3 p, vec3 color, vec3 n, float h, bool isCelled) {
 
-    float sp = length(p) - 0.5f;
-    float pl = dot(p, normalize(vec3(0.0f,1.0f,0.0f))) + 1.5f;
-    vec4 sphere = vec4(1.0f,1.0f,1.0f,sp);
-    vec3 color = vec3(0.2f + 0.4f * mod(floor(p.x) + floor(p.z), 2.0f));
-    vec4 plain = vec4(color.x,color.y,color.z,pl);
+    float plane = dot(p, normalize(n)) + h;
 
-    return unionSDF(plain, sphere);
+    if (isCelled) {
+        color = vec3(0.2f + 0.4f * mod(floor(p.x) + floor(p.z), 2.0f));
+    }
+
+    return vec4(color, plane);
 }
 
-vec3 EstimateNormal(vec3 z, float eps) {
-    vec3 z1 = z + vec3(eps,0,0);
-    vec3 z2 = z - vec3(eps,0,0);
-    vec3 z3 = z + vec3(0,eps,0);
-    vec3 z4 = z - vec3(0,eps,0);
-    vec3 z5 = z + vec3(0,0,eps);
-    vec3 z6 = z - vec3(0,0,eps);
-    float dx = map(z1).w - map(z2).w;
-    float dy = map(z3).w - map(z4).w;
-    float dz = map(z5).w - map(z6).w;
-    return normalize(vec3(dx,dy,dz) / (2.0f * eps));
+vec4 map(vec3 p) {
+    vec4 sphere = sdf_sphere(p, vec3(0,0.5f,0), vec3(0.0f,0.0f,1.0f), 1.0f);
+    vec4 plain = sdf_plane(p, vec3(1.0f,1.0f,1.0f), vec3(0.0f,1.0f,0.0f), 1.5f, true);
+    vec4 box = sdf_mengerSponge(p, vec3(0.0f,0.0f,0.0f), vec3(1.0f,0.0f,0.0f), vec3(1.0f));
+    vec4 mandelbulb = sdf_mandelbulb(p, vec3(1,0,0), vec3(1,0,0), 5);
+
+    return unionSDF(smoothUnion(box, sphere, 0.5), plain);
 }
 
 float getSoftShadow(vec3 p, vec3 lightPos) {
@@ -180,10 +266,31 @@ float getAmbientOcclusion(vec3 p, vec3 normal) {
     return 1.0f - clamp(0.6f * occ, 0.0f, 1.0f);
 }
 
+vec3 EstimateNormal(vec3 z, float eps) {
+    vec3 z1 = z + vec3(eps,0,0);
+    vec3 z2 = z - vec3(eps,0,0);
+    vec3 z3 = z + vec3(0,eps,0);
+    vec3 z4 = z - vec3(0,eps,0);
+    vec3 z5 = z + vec3(0,0,eps);
+    vec3 z6 = z - vec3(0,0,eps);
+    float dx = map(z1).w - map(z2).w;
+    float dy = map(z3).w - map(z4).w;
+    float dz = map(z5).w - map(z6).w;
+    return normalize(vec3(dx,dy,dz));
+}
+
+mat3 getCam(vec3 ro, vec3 lookAt) {
+	vec3 camF = normalize(lookAt - ro);
+	vec3 camR = normalize(cross(vec3(0.0f,1.0f,0.0f), camF));
+	vec3 camU = cross(camF, camR);
+
+	return mat3(camR, camU, camF);
+}
+
 vec3 getLight(vec3 pos, vec3 rd, vec3 color) {
     vec3 lightPos = vec3(2.0f,20.0f,-5.0f);
     vec3 L = normalize(lightPos - pos);
-    vec3 N = EstimateNormal(pos, 1e-3f);
+    vec3 N = EstimateNormal(pos, 1e-3);
     vec3 V = -1 * rd;
     vec3 R = reflect(-1 * L, N);
 
@@ -198,6 +305,11 @@ vec3 getLight(vec3 pos, vec3 rd, vec3 color) {
     vec3 dif = color * clamp(dot(N, L), 0.1f, 1.0f);
 
     return (ambient + fresnel) * occ + (dif + specular * occ) * shadow;
+}
+
+vec2 getUV(vec2 offset, int x, int y, int width, int heigth) {
+    float ratio = float(width) / float(heigth);
+    return ((vec2(x,y) - offset) * 2.0f / vec2(width,heigth) - 1.0f) * vec2(ratio,1);
 }
 
 uint RealColorToUint32(vec4 real_color) {

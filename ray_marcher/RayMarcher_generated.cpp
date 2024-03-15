@@ -29,7 +29,9 @@ constexpr uint32_t KGEN_REDUCTION_LAST_STEP    = 16;
 void RayMarcher_Generated::UpdatePlainMembers(std::shared_ptr<vk_utils::ICopyEngine> a_pCopyEngine)
 {
   const size_t maxAllowedSize = std::numeric_limits<uint32_t>::max();
-  m_uboData.camera = camera;
+  m_uboData._lookAt = _lookAt;
+  m_uboData._ro = _ro;
+  m_uboData.FOV = FOV;
   m_uboData.rayMarchTime = rayMarchTime;
   a_pCopyEngine->UpdateBuffer(m_classDataBuffer, 0, &m_uboData, sizeof(m_uboData));
 }
@@ -37,7 +39,9 @@ void RayMarcher_Generated::UpdatePlainMembers(std::shared_ptr<vk_utils::ICopyEng
 void RayMarcher_Generated::ReadPlainMembers(std::shared_ptr<vk_utils::ICopyEngine> a_pCopyEngine)
 {
   a_pCopyEngine->ReadBuffer(m_classDataBuffer, 0, &m_uboData, sizeof(m_uboData));
-  camera = m_uboData.camera;
+  _lookAt = m_uboData._lookAt;
+  _ro = m_uboData._ro;
+  FOV = m_uboData.FOV;
   rayMarchTime = m_uboData.rayMarchTime;
 }
 
@@ -49,7 +53,7 @@ void RayMarcher_Generated::UpdateTextureMembers(std::shared_ptr<vk_utils::ICopyE
 { 
 }
 
-void RayMarcher_Generated::RayMarchCmd(uint32_t* out_color, uint32_t width, uint32_t height)
+void RayMarcher_Generated::RayMarchAAX1Cmd(uint32_t* out_color, uint32_t width, uint32_t height)
 {
   uint32_t blockSizeX = 32;
   uint32_t blockSizeY = 8;
@@ -71,8 +75,35 @@ void RayMarcher_Generated::RayMarchCmd(uint32_t* out_color, uint32_t width, uint
   pcData.m_sizeY  = width;
   pcData.m_sizeZ  = 1;
   pcData.m_tFlags = m_currThreadFlags;
-  vkCmdPushConstants(m_currCmdBuffer, RayMarchLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(KernelArgsPC), &pcData);
-  vkCmdBindPipeline(m_currCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, RayMarchPipeline);
+  vkCmdPushConstants(m_currCmdBuffer, RayMarchAAX1Layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(KernelArgsPC), &pcData);
+  vkCmdBindPipeline(m_currCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, RayMarchAAX1Pipeline);
+  vkCmdDispatch    (m_currCmdBuffer, (sizeX + blockSizeX - 1) / blockSizeX, (sizeY + blockSizeY - 1) / blockSizeY, (sizeZ + blockSizeZ - 1) / blockSizeZ);
+}
+
+void RayMarcher_Generated::RayMarchAAX4Cmd(uint32_t* out_color, uint32_t width, uint32_t height)
+{
+  uint32_t blockSizeX = 32;
+  uint32_t blockSizeY = 8;
+  uint32_t blockSizeZ = 1;
+  
+  struct KernelArgsPC
+  {
+    uint32_t m_sizeX;
+    uint32_t m_sizeY;
+    uint32_t m_sizeZ;
+    uint32_t m_tFlags;
+  } pcData;
+  
+  uint32_t sizeX  = uint32_t(height);
+  uint32_t sizeY  = uint32_t(width);
+  uint32_t sizeZ  = uint32_t(1);
+  
+  pcData.m_sizeX  = height;
+  pcData.m_sizeY  = width;
+  pcData.m_sizeZ  = 1;
+  pcData.m_tFlags = m_currThreadFlags;
+  vkCmdPushConstants(m_currCmdBuffer, RayMarchAAX4Layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(KernelArgsPC), &pcData);
+  vkCmdBindPipeline(m_currCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, RayMarchAAX4Pipeline);
   vkCmdDispatch    (m_currCmdBuffer, (sizeX + blockSizeX - 1) / blockSizeX, (sizeY + blockSizeY - 1) / blockSizeY, (sizeZ + blockSizeZ - 1) / blockSizeZ);
 }
 
@@ -132,21 +163,29 @@ void RayMarcher_Generated::BarriersForSeveralBuffers(VkBuffer* a_inBuffers, VkBu
   }
 }
 
-void RayMarcher_Generated::RayMarchCmd(VkCommandBuffer a_commandBuffer, uint32_t* out_color, uint32_t width, uint32_t height)
+void RayMarcher_Generated::RayMarchCmd(VkCommandBuffer a_commandBuffer, uint32_t* out_color, uint32_t width, uint32_t height, int aliasingType)
 {
   m_currCmdBuffer = a_commandBuffer;
   VkMemoryBarrier memoryBarrier = { VK_STRUCTURE_TYPE_MEMORY_BARRIER, nullptr, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT }; 
       auto start = std::chrono::high_resolution_clock::now();
-    vkCmdBindDescriptorSets(a_commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, RayMarchLayout, 0, 1, &m_allGeneratedDS[0], 0, nullptr);
-  RayMarchCmd(out_color, width, height);
+    switch(aliasingType){
+        case 4:
+            vkCmdBindDescriptorSets(a_commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, RayMarchAAX4Layout, 0, 1, &m_allGeneratedDS[0], 0, nullptr);
+  RayMarchAAX4Cmd(out_color, width, height);
   vkCmdPipelineBarrier(m_currCmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0, nullptr);
+            break;
+        default:
+            vkCmdBindDescriptorSets(a_commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, RayMarchAAX1Layout, 0, 1, &m_allGeneratedDS[0], 0, nullptr);
+  RayMarchAAX1Cmd(out_color, width, height);
+  vkCmdPipelineBarrier(m_currCmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0, nullptr);
+    }
     rayMarchTime = float(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count()) / 1000.f;
 
 }
 
 
 
-void RayMarcher_Generated::RayMarch(uint32_t* out_color, uint32_t width, uint32_t height)
+void RayMarcher_Generated::RayMarch(uint32_t* out_color, uint32_t width, uint32_t height, int aliasingType)
 {
   // (1) get global Vulkan context objects
   //
@@ -227,7 +266,7 @@ void RayMarcher_Generated::RayMarch(uint32_t* out_color, uint32_t width, uint32_
     beginCommandBufferInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginCommandBufferInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
     vkBeginCommandBuffer(commandBuffer, &beginCommandBufferInfo);
-    RayMarchCmd(commandBuffer, out_color, width, height);      
+    RayMarchCmd(commandBuffer, out_color, width, height, aliasingType);      
     vkEndCommandBuffer(commandBuffer);  
     auto start = std::chrono::high_resolution_clock::now();
     vk_utils::executeCommandBufferNow(commandBuffer, computeQueue, device);

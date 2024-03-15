@@ -1,5 +1,5 @@
 ﻿cmake_minimum_required (VERSION 3.8)
-project (simplerf)
+project (nair-v-ray-marching)
 
 # get rid of annoying MSVC warnings.
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
@@ -31,12 +31,12 @@ if(USE_VULKAN)
   include_directories("external/LiteMath"
                       "external/vk-utils"
                       "external/volk"
-                      "external/json-master")
+                      "external/json/include")
 
   link_directories("../volk")
 else()
   include_directories("external/LiteMath"
-                      "external/json-master")
+                      "external/json/include")
 endif()
 
 include_directories(".")

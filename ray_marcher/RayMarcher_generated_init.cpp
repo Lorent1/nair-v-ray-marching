@@ -140,8 +140,10 @@ RayMarcher_Generated::~RayMarcher_Generated()
   for(size_t i=0;i<m_allCreatedPipelineLayouts.size();i++)
     vkDestroyPipelineLayout(device, m_allCreatedPipelineLayouts[i], nullptr);
 
-  vkDestroyDescriptorSetLayout(device, RayMarchDSLayout, nullptr);
-  RayMarchDSLayout = VK_NULL_HANDLE;
+  vkDestroyDescriptorSetLayout(device, RayMarchAAX1DSLayout, nullptr);
+  RayMarchAAX1DSLayout = VK_NULL_HANDLE;
+  vkDestroyDescriptorSetLayout(device, RayMarchAAX4DSLayout, nullptr);
+  RayMarchAAX4DSLayout = VK_NULL_HANDLE;
   vkDestroyDescriptorPool(device, m_dsPool, NULL); m_dsPool = VK_NULL_HANDLE;
   
  
@@ -156,18 +158,27 @@ void RayMarcher_Generated::InitHelpers()
 }
 
 
-void RayMarcher_Generated::InitKernel_RayMarch(const char* a_filePath)
+void RayMarcher_Generated::InitKernel_RayMarchAAX1(const char* a_filePath)
 {
-  std::string shaderPath = AlterShaderPath("shaders_generated/kernel2D_RayMarch.comp.spv"); 
+  std::string shaderPath = AlterShaderPath("shaders_generated/kernel2D_RayMarchAAX1.comp.spv"); 
   const VkSpecializationInfo* kspec = nullptr;
-  RayMarchDSLayout = CreateRayMarchDSLayout();
-  MakeComputePipelineAndLayout(shaderPath.c_str(), "main", kspec, RayMarchDSLayout, &RayMarchLayout, &RayMarchPipeline);
+  RayMarchAAX1DSLayout = CreateRayMarchAAX1DSLayout();
+  MakeComputePipelineAndLayout(shaderPath.c_str(), "main", kspec, RayMarchAAX1DSLayout, &RayMarchAAX1Layout, &RayMarchAAX1Pipeline);
+}
+
+void RayMarcher_Generated::InitKernel_RayMarchAAX4(const char* a_filePath)
+{
+  std::string shaderPath = AlterShaderPath("shaders_generated/kernel2D_RayMarchAAX4.comp.spv"); 
+  const VkSpecializationInfo* kspec = nullptr;
+  RayMarchAAX4DSLayout = CreateRayMarchAAX4DSLayout();
+  MakeComputePipelineAndLayout(shaderPath.c_str(), "main", kspec, RayMarchAAX4DSLayout, &RayMarchAAX4Layout, &RayMarchAAX4Pipeline);
 }
 
 
 void RayMarcher_Generated::InitKernels(const char* a_filePath)
 {
-  InitKernel_RayMarch(a_filePath);
+  InitKernel_RayMarchAAX1(a_filePath);
+  InitKernel_RayMarchAAX4(a_filePath);
 }
 
 void RayMarcher_Generated::InitBuffers(size_t a_maxThreadsCount, bool a_tempBuffersOverlay)

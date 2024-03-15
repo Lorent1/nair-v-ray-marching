@@ -7,6 +7,8 @@
 #include <iomanip> // for std::fixed/std::setprecision
 #include <sstream>
 
+#include "files/file_input.h"
+
 #include "ray_marcher/RayMarcher.h"
 #include "Image2d.h"
 
@@ -40,13 +42,17 @@ int main(int argc, const char** argv){
     pImpl = std::make_shared<RayMarcher>();
 
     pImpl->CommitDeviceData();
-    pImpl->setCamera("jsons/camera.json");
-  
 
+    float3 ro;
+    float3 lookAt;
+    float FOV;
+    InputJson::read_camera("./jsons/camera.json", &ro, &lookAt, &FOV);
+    pImpl->setCamera(ro, lookAt, FOV);
+  
     std::vector<uint> pixelData(WIN_WIDTH * WIN_HEIGHT);
 
     pImpl->UpdateMembersPlainData();                                            // copy all POD members from CPU to GPU in GPU implementation
-    pImpl->RayMarch(pixelData.data(), WIN_WIDTH, WIN_HEIGHT);
+    pImpl->RayMarch(pixelData.data(), WIN_WIDTH, WIN_HEIGHT, 4);
 
     float timings[4] = { 0,0,0,0 };
     pImpl->GetExecutionTime("RayMarch", timings);

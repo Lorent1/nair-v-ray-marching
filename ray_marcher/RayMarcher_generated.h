@@ -64,9 +64,9 @@ public:
   virtual void ReadPlainMembers(std::shared_ptr<vk_utils::ICopyEngine> a_pCopyEngine);
   static VkPhysicalDeviceFeatures2 ListRequiredDeviceFeatures(std::vector<const char*>& deviceExtensions);
   
-  virtual void RayMarchCmd(VkCommandBuffer a_commandBuffer, uint32_t* out_color, uint32_t width, uint32_t height);
+  virtual void RayMarchCmd(VkCommandBuffer a_commandBuffer, uint32_t* out_color, uint32_t width, uint32_t height, int aliasingType);
 
-  void RayMarch(uint32_t* out_color, uint32_t width, uint32_t height) override;
+  void RayMarch(uint32_t* out_color, uint32_t width, uint32_t height, int aliasingType) override;
 
   inline vk_utils::ExecTime GetRayMarchExecutionTime() const { return m_exTimeRayMarch; }
 
@@ -74,7 +74,8 @@ public:
 
   virtual void copyKernelFloatCmd(uint32_t length);
   
-  virtual void RayMarchCmd(uint32_t* out_color, uint32_t width, uint32_t height);
+  virtual void RayMarchAAX1Cmd(uint32_t* out_color, uint32_t width, uint32_t height);
+  virtual void RayMarchAAX4Cmd(uint32_t* out_color, uint32_t width, uint32_t height);
   
   struct MemLoc
   {
@@ -133,11 +134,16 @@ protected:
   size_t m_maxThreadCount = 0;
   VkBuffer m_classDataBuffer = VK_NULL_HANDLE;
 
-  VkPipelineLayout      RayMarchLayout   = VK_NULL_HANDLE;
-  VkPipeline            RayMarchPipeline = VK_NULL_HANDLE; 
-  VkDescriptorSetLayout RayMarchDSLayout = VK_NULL_HANDLE;
-  VkDescriptorSetLayout CreateRayMarchDSLayout();
-  virtual void InitKernel_RayMarch(const char* a_filePath);
+  VkPipelineLayout      RayMarchAAX1Layout   = VK_NULL_HANDLE;
+  VkPipeline            RayMarchAAX1Pipeline = VK_NULL_HANDLE; 
+  VkDescriptorSetLayout RayMarchAAX1DSLayout = VK_NULL_HANDLE;
+  VkDescriptorSetLayout CreateRayMarchAAX1DSLayout();
+  virtual void InitKernel_RayMarchAAX1(const char* a_filePath);
+  VkPipelineLayout      RayMarchAAX4Layout   = VK_NULL_HANDLE;
+  VkPipeline            RayMarchAAX4Pipeline = VK_NULL_HANDLE; 
+  VkDescriptorSetLayout RayMarchAAX4DSLayout = VK_NULL_HANDLE;
+  VkDescriptorSetLayout CreateRayMarchAAX4DSLayout();
+  virtual void InitKernel_RayMarchAAX4(const char* a_filePath);
 
 
   virtual VkBufferUsageFlags GetAdditionalFlagsForUBO() const;
