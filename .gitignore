@@ -32,11 +32,11 @@
 *.app
 
 /build
-/out
 /.vs
 /external/LiteMath/
 /external/vkutils/
 /external/volk/
 /external/json/
 /cmake-build*
+/images/out_*
 config.txt

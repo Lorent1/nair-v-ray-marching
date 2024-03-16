@@ -9,6 +9,8 @@ git submodule init
 git submodule update
 ```
 
+Установить `Vulkan SDK`, если он не установлен (https://vulkan.lunarg.com/)
+
 ## Сборка и запуск
 
 ### CPU
@@ -64,7 +66,7 @@ make -j 8
 
 ## Производительность
 
-Результатом программы является файлы вида out_`gpu\cpu`_`width`x`height`.bmp
+Результатом программы является файлы вида `out_gpu\cpu_width x height.bmp` , лежащие в папке `images`
 
 Все расчеты проводились на ноутбуке - HP Victus / `Ryzen 5 5600H` / `GeForce RTX 3050Ti 4GB` / 16GB
 
