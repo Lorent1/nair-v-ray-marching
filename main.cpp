@@ -24,8 +24,8 @@ int main(int argc, const char** argv){
 #else
     bool enableValidationLayers = false;
 #endif
-    uint WIN_WIDTH = 2560;
-    uint WIN_HEIGHT = 1440;
+    uint WIN_WIDTH = 512;
+    uint WIN_HEIGHT = 512;
 
     std::shared_ptr<RayMarcher> pImpl = nullptr;
 #ifdef USE_VULKAN
@@ -66,7 +66,7 @@ int main(int argc, const char** argv){
 
     LiteImage::SaveBMP(fileName.c_str(), pixelData.data(), WIN_WIDTH, WIN_HEIGHT);
 
-    std::cout << "angl = " << 0 << ", timeRender = " << timings[0] << " ms, timeCopy = " << timings[1] + timings[2] << " ms " << std::endl;
+    std::cout << "timeRender = " << timings[0] << " ms, timeCopy = " << timings[1] + timings[2] << " ms " << std::endl;
 
     pImpl = nullptr;
     return 0;

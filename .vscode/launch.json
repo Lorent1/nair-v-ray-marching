@@ -22,6 +22,26 @@
         },
 
         {
+            "name"   : "Launch multicpu",
+            "type"   : "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/cmake-build-cpu-release/app",
+            "args"   : ["-fopenmp", "aaa", "bbb"],
+            "stopAtEntry": false,
+            "cwd"    : "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+
+        {
             "name"   : "Launch gpu",
             "type"   : "cppdbg",
             "request": "launch",

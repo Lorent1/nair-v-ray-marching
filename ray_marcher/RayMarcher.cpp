@@ -90,7 +90,8 @@ float3 RayMarcher::render(float2 uv, int x, int y){
 }
 
 
-void RayMarcher::kernel2D_RayMarchAAX1(uint32_t* out_color, uint32_t width, uint32_t height){        
+void RayMarcher::kernel2D_RayMarchAAX1(uint32_t* out_color, uint32_t width, uint32_t height){
+    #pragma omp for collapse(2)       
     for (uint32_t y = 0; y < height; y++){
         for (uint32_t x = 0; x < width; x++){
             float2 uv = getUV(float2(0.0f), x, y, width, height);
@@ -102,9 +103,7 @@ void RayMarcher::kernel2D_RayMarchAAX1(uint32_t* out_color, uint32_t width, uint
 }
 
 void RayMarcher::kernel2D_RayMarchAAX4(uint32_t* out_color, uint32_t width, uint32_t height){
-#pragma omp parallel
-    {
-        #pragma omp for collapse(2)
+    #pragma omp for collapse(2)
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 float4 e = float4(0.125f, -0.125f, 0.375f, -0.375f);
@@ -117,18 +116,20 @@ void RayMarcher::kernel2D_RayMarchAAX4(uint32_t* out_color, uint32_t width, uint
                 out_color[y * width + x] = RealColorToUint32(float4(pixel.x, pixel.y, pixel.z, 1.0f));
             }
         }
-    }
 }
 
 
 void RayMarcher::RayMarch(uint32_t* out_color, uint32_t width, uint32_t height, int aliasingType){
     auto start = std::chrono::high_resolution_clock::now();
-    switch(aliasingType){
+    #pragma omp parallel
+    {
+        switch(aliasingType){
         case 4:
             kernel2D_RayMarchAAX4(out_color, width, height);
             break;
         default:
             kernel2D_RayMarchAAX1(out_color, width, height);
+        }
     }
     rayMarchTime = float(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count()) / 1000.f;
 }

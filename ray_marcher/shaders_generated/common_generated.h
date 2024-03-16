@@ -123,19 +123,28 @@ mat3 make_float3x3(vec3 a, vec3 b, vec3 c) { // different way than mat3(a,b,c)
               a.z, b.z, c.z);
 }
 
+vec3 getColor(vec3 c1, vec3 c2, float d1, float d2) {
+    return (d1 * c2 + d2 * c1) / (d1 + d2);
+}
+
+vec3 getPos(vec3 p, vec3 offset) { return p - offset; }
+
 // vec3 max(vec3 q, float f) {
 //     return max(q, vec3(f));
 //     return vec3(max(q.x, f),max(q.y, f),max(q.z, f));
 // }
 
-vec3 getPos(vec3 p, vec3 offset) {return p - offset;}
-
 // vec3 mod(vec3 q, float f) {
 //     return vec3(mod(q.x, f),mod(q.y, f),mod(q.z,f));
 // }
 
-vec3 getColor(vec3 c1, vec3 c2, float d1, float d2) {
-    return (d1 * c1 + d2 * c2) / (d1 + d2);
+vec4 smoothUnion(vec4 d1, vec4 d2, float k) {
+    float h = clamp(0.5f + 0.5f * (d1.w - d2.w) / k, 0.0f, 1.0f);
+    float d = mix(d1.w, d2.w, h) - k * h * (1.0f - h);
+
+    vec3 color = getColor(vec3(d1.x,d1.y,d1.z), vec3(d2.x,d2.y,d2.z), d1.w, d2.w);
+
+    return vec4(color, d);
 }
 
 vec4 sdf_box(vec3 p, vec3 offset, vec3 color, vec3 side) {
@@ -147,31 +156,24 @@ vec4 sdf_box(vec3 p, vec3 offset, vec3 color, vec3 side) {
     return vec4(color, box);
 }
 
-vec4 sdf_mengerSponge(vec3 p, vec3 offset, vec3 color, vec3 side) {
+vec4 sdf_sphere(vec3 p, vec3 offset, vec3 color, float r) {
     p = getPos(p, offset);
-    vec4 box = sdf_box(p, vec3(0.0f), color, side);
-
-    float s = 1.0f;
-
-    for (int m = 0; m < 5; m++) {
-        vec3 a = mod((p) * s, 2.0f) - 1.0f;
-        s *= 3.0;
-        vec3 r = abs(1.0f - 3.0f * abs(a));
-
-        float da = max(r.x, r.y);
-        float db = max(r.y, r.z);
-        float dc = max(r.z, r.x);
-
-        float c = (min(da, min(db, dc)) - 1.0f) / s;
-
-        box.w = max(box.w, c);
-    }
-
-    return box;
+    float obj = length(p) - r;
+    return vec4(color, obj);
 }
 
-vec4 sdf_mandelbulb(vec3 p, vec3 offset, vec3 color, int power) {
+vec4 sdf_roundBox(vec3 p, vec3 offset, vec3 color, vec3 side, float r) {
     p = getPos(p, offset);
+    vec3 q = abs(p) - side + r;
+
+    float box = length(max(q, 0.0f)) + min(max(q.x, max(q.y, q.z)), 0.0f) - r;
+
+    return vec4(color, box);
+}
+
+vec4 sdf_mandelbulb(vec3 p, vec3 offset, vec3 color, int power, float scale) {
+    p = getPos(p, offset);
+    p /= scale;
     vec3 z = p;
 
     float dr = 1;
@@ -200,23 +202,6 @@ vec4 sdf_mandelbulb(vec3 p, vec3 offset, vec3 color, int power) {
     return vec4(color, 0.5f * log(r) * r / dr);
 }
 
-vec4 sdf_sphere(vec3 p, vec3 offset, vec3 color, float r) {
-    p = getPos(p, offset);
-    float obj = length(p) - r;
-    return vec4(color, obj);
-}
-
-vec4 smoothUnion(vec4 d1, vec4 d2, float k) {
-    float h = max(k - abs(d1.w - d2.w), 0.0f);
-    vec3 color = getColor(vec3(d1.x,d1.y,d1.z), vec3(d2.x,d2.y,d2.z), d1.w, d2.w);
-
-    return vec4(color, min(d1.w, d2.w) - h * h * 0.25f / k);
-}
-
-vec4 unionSDF(vec4 a, vec4 b) {
-    return a.w < b.w ? a : b;
-}
-
 vec4 sdf_plane(vec3 p, vec3 color, vec3 n, float h, bool isCelled) {
 
     float plane = dot(p, normalize(n)) + h;
@@ -228,13 +213,91 @@ vec4 sdf_plane(vec3 p, vec3 color, vec3 n, float h, bool isCelled) {
     return vec4(color, plane);
 }
 
-vec4 map(vec3 p) {
-    vec4 sphere = sdf_sphere(p, vec3(0,0.5f,0), vec3(0.0f,0.0f,1.0f), 1.0f);
-    vec4 plain = sdf_plane(p, vec3(1.0f,1.0f,1.0f), vec3(0.0f,1.0f,0.0f), 1.5f, true);
-    vec4 box = sdf_mengerSponge(p, vec3(0.0f,0.0f,0.0f), vec3(1.0f,0.0f,0.0f), vec3(1.0f));
-    vec4 mandelbulb = sdf_mandelbulb(p, vec3(1,0,0), vec3(1,0,0), 5);
+vec4 sdf_mengerSponge(vec3 p, vec3 offset, vec3 color, vec3 side, float scale) {
+    p = getPos(p, offset);
+    p /= scale;
+    vec4 box = sdf_box(p, vec3(0.0f), color, side);
 
-    return unionSDF(smoothUnion(box, sphere, 0.5), plain);
+    float s = 1.0f;
+
+    for (int m = 0; m < 5; m++) {
+        vec3 a = mod((p) * s, 2.0f) - 1.0f;
+        s *= 3.0;
+        vec3 r = abs(1.0f - 3.0f * abs(a));
+
+        float da = max(r.x, r.y);
+        float db = max(r.y, r.z);
+        float dc = max(r.z, r.x);
+
+        float c = (min(da, min(db, dc)) - 1.0f) / s;
+
+        box.w = max(box.w, c);
+    }
+
+    return box;
+}
+
+vec4 smoothSubtraction(vec4 d1, vec4 d2, float k) {
+    vec4 negDistance = vec4(vec3(1.0f), -1.0f);
+    return smoothUnion(d1, d2 * negDistance, k) * negDistance;
+}
+
+vec4 unionSDF(vec4 a, vec4 b) {
+    return a.w < b.w ? a : b;
+}
+
+vec4 map(vec3 p) {
+    vec4 scene = vec4(1.0f);
+
+    vec4 sphere = sdf_sphere(p, vec3(0.0f,2.0f,-3.0f), vec3(0.0f,0.0f,1.0f), 2.0f);
+    vec4 sphere2 = sdf_sphere(p, vec3(0.0f,0.0f,0.0f), vec3(0.67f,0.87f,0.87f), 5.7f);
+    vec4 sphere3 = sdf_sphere(p, vec3(0.0f,-1.5f,-5.0f), vec3(0.67f,0.87f,0.87f), 2.0f);
+
+    vec4 rbox = sdf_roundBox(p, vec3(0.0f,-1.0f,0.0f), vec3(0.25f,0.79f,0.87f), vec3(5.0f), 0.5f);
+
+    vec4 plain = sdf_plane(p, vec3(1.0f,1.0f,1.0f), vec3(0.0f,1.0f,0.0f), 1.5f, true);
+
+    vec4 sponge = sdf_mengerSponge(p, vec3(0.0f,1.0f,0.0f), vec3(0.0f,0.55f,0.85f), vec3(1.0f), 2.0f);
+
+    vec4 mandelbulb = sdf_mandelbulb(p, vec3(0.0f,7.0f,0.0f), vec3(0.25f,0.79f,0.87f), 7, 3.0f);
+
+    scene = smoothSubtraction(sphere, sponge, 0.8f);
+
+    vec4 tmp = smoothSubtraction(sphere2, rbox, 0.95f);
+    scene = unionSDF(tmp, scene);
+
+    tmp = smoothUnion(plain, sphere3, 0.9f);
+    scene = unionSDF(scene, tmp);
+
+    scene = unionSDF(mandelbulb, scene);
+
+    return scene;
+}
+
+vec3 EstimateNormal(vec3 z, float eps) {
+    vec3 z1 = z + vec3(eps,0,0);
+    vec3 z2 = z - vec3(eps,0,0);
+    vec3 z3 = z + vec3(0,eps,0);
+    vec3 z4 = z - vec3(0,eps,0);
+    vec3 z5 = z + vec3(0,0,eps);
+    vec3 z6 = z - vec3(0,0,eps);
+    float dx = map(z1).w - map(z2).w;
+    float dy = map(z3).w - map(z4).w;
+    float dz = map(z5).w - map(z6).w;
+    return normalize(vec3(dx,dy,dz));
+}
+
+float getAmbientOcclusion(vec3 p, vec3 normal) {
+    float occ = 0.0f;
+    float weight = 1.0f;
+
+    for (int i = 0; i < 8; i++) {
+        float len = 0.01f + 0.02f * float(i * i);
+        float dist = map(p + normal * len).x;
+        occ += (len - dist) * weight;
+        weight *= 0.85f;
+    }
+    return 1.0f - clamp(0.6f * occ, 0.0f, 1.0f);
 }
 
 float getSoftShadow(vec3 p, vec3 lightPos) {
@@ -251,32 +314,6 @@ float getSoftShadow(vec3 p, vec3 lightPos) {
     }
 
     return clamp(res, 0.0f, 1.0f);
-}
-
-float getAmbientOcclusion(vec3 p, vec3 normal) {
-    float occ = 0.0f;
-    float weight = 1.0f;
-
-    for (int i = 0; i < 8; i++) {
-        float len = 0.01f + 0.02f * float(i * i);
-        float dist = map(p + normal * len).x;
-        occ += (len - dist) * weight;
-        weight *= 0.85f;
-    }
-    return 1.0f - clamp(0.6f * occ, 0.0f, 1.0f);
-}
-
-vec3 EstimateNormal(vec3 z, float eps) {
-    vec3 z1 = z + vec3(eps,0,0);
-    vec3 z2 = z - vec3(eps,0,0);
-    vec3 z3 = z + vec3(0,eps,0);
-    vec3 z4 = z - vec3(0,eps,0);
-    vec3 z5 = z + vec3(0,0,eps);
-    vec3 z6 = z - vec3(0,0,eps);
-    float dx = map(z1).w - map(z2).w;
-    float dy = map(z3).w - map(z4).w;
-    float dz = map(z5).w - map(z6).w;
-    return normalize(vec3(dx,dy,dz));
 }
 
 mat3 getCam(vec3 ro, vec3 lookAt) {
@@ -309,7 +346,7 @@ vec3 getLight(vec3 pos, vec3 rd, vec3 color) {
 
 vec2 getUV(vec2 offset, int x, int y, int width, int heigth) {
     float ratio = float(width) / float(heigth);
-    return ((vec2(x,y) - offset) * 2.0f / vec2(width,heigth) - 1.0f) * vec2(ratio,1);
+    return ((vec2(x,y) - offset) * 2.0f / vec2(width,heigth) - 1.0f) * vec2(ratio,1.0f);
 }
 
 uint RealColorToUint32(vec4 real_color) {
