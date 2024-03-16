@@ -37,6 +37,6 @@
 /external/vkutils/
 /external/volk/
 /external/json/
+/images/
 /cmake-build*
-/images/out_*
 config.txt
