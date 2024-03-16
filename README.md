@@ -19,15 +19,15 @@ cmake -DCMAKE_BUILD_TYPE=Release ..
 make -j 8
 ```
 
-После сборки следует использовать "launch cpu" или "launch multicpu" в vs code для соответствующих режимов запуска
+После сборки следует использовать `launch cpu` или `launch multicpu` в vs code для соответствующих режимов запуска
 
 ### GPU
 ```shell
-mkdir cmake-build-cpu-release && cd cmake-build-gpu-release
+mkdir cmake-build-gpu-release && cd cmake-build-gpu-release
 cmake -DCMAKE_BUILD_TYPE=Release -DUSE_VULKAN=ON ..
 make -j 8
 ```
-После сборки следует использовать "launch gpu" в vs code для соответствующего режима запуска
+После сборки следует использовать `launch gpu` в vs code для соответствующего режима запуска
 
 ## Зависимости
 * `external/json` - nlohman-json библиотека для работы с json файлами
