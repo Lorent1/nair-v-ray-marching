@@ -92,8 +92,8 @@ float3 RayMarcher::render(float2 uv, int x, int y){
 
 void RayMarcher::kernel2D_RayMarchAAX1(uint32_t* out_color, uint32_t width, uint32_t height){
     #pragma omp for collapse(2)       
-    for (uint32_t y = 0; y < height; y++){
-        for (uint32_t x = 0; x < width; x++){
+    for (int y = 0; y < height; y++){
+        for (int x = 0; x < width; x++){
             float2 uv = getUV(float2(0.0f), x, y, width, height);
             float3 pixel = render(uv, x, y);
 
@@ -104,18 +104,18 @@ void RayMarcher::kernel2D_RayMarchAAX1(uint32_t* out_color, uint32_t width, uint
 
 void RayMarcher::kernel2D_RayMarchAAX4(uint32_t* out_color, uint32_t width, uint32_t height){
     #pragma omp for collapse(2)
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                float4 e = float4(0.125f, -0.125f, 0.375f, -0.375f);
-                float3 pixel = render(getUV(float2(e.x, e.z), x, y, width, height), x, y)
-                    + render(getUV(float2(e.y, e.w), x, y, width, height), x, y)
-                    + render(getUV(float2(e.w, e.x), x, y, width, height), x, y)
-                    + render(getUV(float2(e.z, e.y), x, y, width, height), x, y);
-                pixel /= 4.0f;
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            float4 e = float4(0.125f, -0.125f, 0.375f, -0.375f);
+            float3 pixel = render(getUV(float2(e.x, e.z), x, y, width, height), x, y)
+                + render(getUV(float2(e.y, e.w), x, y, width, height), x, y)
+                + render(getUV(float2(e.w, e.x), x, y, width, height), x, y)
+                + render(getUV(float2(e.z, e.y), x, y, width, height), x, y);
+            pixel /= 4.0f;
 
-                out_color[y * width + x] = RealColorToUint32(float4(pixel.x, pixel.y, pixel.z, 1.0f));
-            }
+            out_color[y * width + x] = RealColorToUint32(float4(pixel.x, pixel.y, pixel.z, 1.0f));
         }
+    }
 }
 
 

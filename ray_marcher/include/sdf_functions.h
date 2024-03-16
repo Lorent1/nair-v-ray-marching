@@ -12,6 +12,10 @@ float4 unionSDF(float4 a, float4 b) {
     return a.w < b.w ? a : b;
 }
 
+float4 differenceSDF(float4 a, float4 b) {
+    return a.w > -b.w ? a : to_float4(float3(b.x, b.y, b.z), -b.w);
+}
+
 float4 smoothUnion(float4 d1, float4 d2, float k){
     float h = clamp(0.5f + 0.5f * (d1.w - d2.w) / k, 0.0f, 1.0f);
     float d = mix(d1.w, d2.w, h) - k * h * (1.0f - h);
@@ -29,10 +33,6 @@ float4 smoothSubtraction(float4 d1, float4 d2, float k){
 float4 smoothIntersection(float4 d1, float4 d2, float k){
     float4 negDistance = to_float4(float3(1.0f), -1.0f);
     return smoothUnion(d1 * negDistance, d2 * negDistance, k) * negDistance;
-}
-
-float4 differenceSDF(float4 a, float4 b) {
-    return a.w > -b.w ? a : to_float4(float3(b.x, b.y, b.z), -b.w);
 }
 
 float3 getPos(float3 p, float3 offset) { return p - offset; }
